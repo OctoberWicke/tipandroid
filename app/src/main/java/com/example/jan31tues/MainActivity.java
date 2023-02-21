@@ -2,10 +2,13 @@ package com.example.jan31tues;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -23,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
     TextView output;
     TextView tiptext;
     TextView per;
+    Button settings_button;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,21 +42,37 @@ public class MainActivity extends AppCompatActivity {
         output = findViewById(R.id.output);
         per = findViewById(R.id.per);
         howmany = findViewById(R.id.howmany);
+        settings_button = findViewById(R.id.settings_button);
+
+        settings_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent(getApplicationContext(), Settings.class);
+                //i.putExtra("color", backgroundColor);
+                startActivity(i);
+            }
+
+        });
 
         tipbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
                 tiptext.setText(i+"%");
-                double value = Double.parseDouble((input.getText().toString()));
-                double many = Double.parseDouble((howmany.getText().toString()));
-                double main = Double.parseDouble((input.getText().toString()));
-                if (yes.isChecked()) {
-                    value = (value/many)*(i/100.0);
-                } else if (no.isChecked()) {
-                    value = (value)*(i/100.0);
+
+                try {
+                    double value = Double.parseDouble((input.getText().toString()));
+                    double many = Double.parseDouble((howmany.getText().toString()));
+                    double main = Double.parseDouble((input.getText().toString()));
+                    if (yes.isChecked()) {
+                        value = (value / many) * (i / 100.0);
+                    } else if (no.isChecked()) {
+                        value = (value) * (i / 100.0);
+                    }
+                    output.setText("$" + String.format("%.2f", (value + (main / many))));
+                    tipamount.setText("$" + String.format("%.2f", (value)));
+                } catch (NumberFormatException e){
+
                 }
-                output.setText("$"+String.format("%.2f", (value+(main/many))));
-                tipamount.setText("$"+String.format("%.2f", (value)));
             }
 
             @Override
@@ -65,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
         input.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                try{
                 if (i== EditorInfo.IME_ACTION_DONE){
                    double value = Double.parseDouble((input.getText().toString()));
                    double many = Double.parseDouble((howmany.getText().toString()));
@@ -77,6 +99,9 @@ public class MainActivity extends AppCompatActivity {
                     output.setText("$"+String.format("%.2f", (value+(main/many))));
                     tipamount.setText("$"+String.format("%.2f", (value)));
                }
+                } catch (NumberFormatException e){
+
+                }
                 return false;
             }
         });
@@ -84,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         howmany.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                try{
                 if (i== EditorInfo.IME_ACTION_DONE) {
                     double value = Double.parseDouble((input.getText().toString()));
                     double many = Double.parseDouble((howmany.getText().toString()));
@@ -96,6 +122,9 @@ public class MainActivity extends AppCompatActivity {
                     output.setText("$"+String.format("%.2f", (value+(main/many))));
                     tipamount.setText("$"+String.format("%.2f", (value)));
                 }
+                } catch (NumberFormatException e){
+
+                }
                 return false;
             }
         });
@@ -107,15 +136,32 @@ public class MainActivity extends AppCompatActivity {
                 output.setText("");
                 tipamount.setText("");
                 if (i == R.id.yes) {
-                    howmany.setVisibility(View.VISIBLE);
-                    howmany.setText("");
                     per.setText("Cost Per Check With Tip:");
                 } else if (i == R.id.no) {
-                    howmany.setVisibility(View.GONE);
-                    howmany.setText("1.0");
                     per.setText("Final Cost With Tip:");
+                    howmany.setText(1+"");
                 }
             }
         });
     }
+
+    public void updateDefaults() {
+        SharedPreferences sp = getSharedPreferences("shared", MODE_PRIVATE);
+        tipbar.setProgress(sp.getInt("defaultTip", 15));
+        howmany.setText(sp.getInt("defaultSplit", 1)+"");
+        if (sp.getBoolean("defaultSplitCheck", false) == true){
+            yes.setChecked(true);
+            no.setChecked(false);
+        } else {
+            yes.setChecked(false);
+            no.setChecked(true);
+        };
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateDefaults();
+    }
+
 }
